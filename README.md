@@ -33,7 +33,7 @@ The image builds once (base + dependencies + app), then runs `run-scan-with-cred
 
 ```bash
 git clone <repo-url>
-cd code-scanning-aggregator
+cd Autosect-codeScan
 docker build -t code-scanner .
 ```
 
