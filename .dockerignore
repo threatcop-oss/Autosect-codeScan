@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Build output (we build inside container)
+dist
+
+# Git
+.git
+.gitignore
+
+# IDE / OS
+.idea
+.vscode
+*.swp
+.DS_Store
+
+# Tests
+coverage
+*.test.ts
+*.spec.ts
+__tests__
+
+# Docs (optional - include if you want)
+# *.md
+
+# Env files (secrets)
+.env
+.env.*

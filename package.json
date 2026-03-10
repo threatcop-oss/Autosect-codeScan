@@ -1,0 +1,58 @@
+{
+  "name": "code-scanner",
+  "version": "0.1.0",
+  "description": "Unified CLI security scanning orchestrator",
+  "type": "module",
+  "bin": {
+    "security-scan": "dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && cp -R src/templates dist/templates && chmod +x dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "scan": "node dist/cli.js",
+    "server": "node dist/server.js",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "node --version",
+    "scr-sca-flow": "node scripts/scr-sca-flow-cli.js",
+    "run-scan-with-credentials": "node scripts/run-scan-with-credentials.js",
+    "docker:build": "docker build -t code-scanner ."
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.990.0",
+    "adm-zip": "^0.5.16",
+    "ajv": "^8.17.1",
+    "chalk": "^5.4.1",
+    "commander": "^12.1.0",
+    "cosmiconfig": "^9.0.0",
+    "dotenv": "^17.3.1",
+    "execa": "^8.0.1",
+    "fs-extra": "^11.2.0",
+    "glob": "^10.3.10",
+    "handlebars": "^4.7.8",
+    "js-yaml": "^4.1.0",
+    "ora": "^8.0.1",
+    "pino": "^8.19.0",
+    "pino-pretty": "^11.2.1",
+    "simple-git": "^3.27.0",
+    "table": "^6.8.2"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/fs-extra": "^11.0.4",
+    "@types/handlebars": "^4.1.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.12.7",
+    "@types/table": "^6.3.2",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

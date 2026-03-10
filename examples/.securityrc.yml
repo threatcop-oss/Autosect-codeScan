@@ -1,0 +1,39 @@
+scanners:
+  gitleaks:
+    enabled: true
+    config: .gitleaks.toml
+
+  trivy:
+    enabled: true
+    severity: CRITICAL,HIGH
+    vulnType: os,library
+
+  semgrep:
+    enabled: true
+    config: auto
+    rules:
+      - p/security-audit
+      - p/nodejs
+
+  npm-audit:
+    enabled: true
+    auditLevel: moderate
+
+output:
+  format: json
+  file: security-report.json
+  console: true
+
+thresholds:
+  failOn: high
+  maxCritical: 0
+  maxHigh: 5
+
+exclude:
+  - "**/node_modules/**"
+  - "**/test/**"
+  - "**/*.test.js"
+
+cache:
+  enabled: true
+  ttl: 86400
