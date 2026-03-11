@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Install SCA/SCR scanner tools in one go: gitleaks, trivy, semgrep, npm (Node), horusec.
+# Install SCA/SCR scanner tools in one go: gitleaks, trivy, semgrep, npm (Node), horusec, codeql.
 # Supports Ubuntu/Linux and macOS.
 # Usage: ./scripts/install-scanner-tools.sh   or   bash scripts/install-scanner-tools.sh
 #
@@ -126,16 +126,53 @@ install_horusec() {
   horusec version
 }
 
+# ----- CodeQL -----
+install_codeql() {
+  if command -v codeql >/dev/null 2>&1; then
+    echo "[ok] CodeQL already installed: $(codeql version 2>/dev/null | head -1 || true)"
+    return 0
+  fi
+  if [ "$OS" = "Darwin" ]; then
+    if command -v brew >/dev/null 2>&1; then
+      echo "Installing CodeQL via Homebrew..."
+      brew install codeql
+    else
+      echo "Install Homebrew to get codeql, or download the bundle from https://github.com/github/codeql-action/releases"
+      return 1
+    fi
+  else
+    echo "Installing CodeQL bundle (this may take a while, ~1 GB download)..."
+    CODEQL_VERSION=$(curl -s "https://api.github.com/repos/github/codeql-action/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+    [ -z "$CODEQL_VERSION" ] && { echo "Could not get CodeQL version"; return 1; }
+    if [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "amd64" ]; then
+      CODEQL_ARCH="linux64"
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+      CODEQL_ARCH="linux-arm64"
+    else
+      echo "Unsupported arch for codeql: $ARCH"
+      return 1
+    fi
+    CODEQL_URL="https://github.com/github/codeql-action/releases/download/${CODEQL_VERSION}/codeql-bundle-${CODEQL_ARCH}.tar.gz"
+    wget -qO /tmp/codeql-bundle.tar.gz "$CODEQL_URL"
+    $SUDO mkdir -p /usr/local/codeql
+    $SUDO tar xf /tmp/codeql-bundle.tar.gz -C /usr/local/codeql --strip-components=1
+    rm -f /tmp/codeql-bundle.tar.gz
+    $SUDO ln -sf /usr/local/codeql/codeql "$BIN_DIR/codeql"
+  fi
+  codeql version
+}
+
 # ----- Main -----
 install_node    || true
 install_gitleaks || true
 install_trivy   || true
 install_semgrep || true
 install_horusec || true
+install_codeql  || true
 
 echo ""
 echo "=== Verify ==="
-for cmd in node npm gitleaks trivy semgrep horusec; do
+for cmd in node npm gitleaks trivy semgrep horusec codeql; do
   if command -v "$cmd" >/dev/null 2>&1; then
     v="$($cmd --version 2>&1)" || v="$($cmd version 2>&1)" || v="ok"
     echo "  $cmd: $(echo "$v" | head -1)"

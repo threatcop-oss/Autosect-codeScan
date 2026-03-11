@@ -11,8 +11,9 @@ export const normalizeSeverity = (value?: string): Severity => {
   if (normalized.startsWith('crit')) return 'critical';
   if (normalized.startsWith('high')) return 'high';
   if (normalized.startsWith('error')) return 'high';
+  if (normalized.startsWith('warn')) return 'medium';
   if (normalized.startsWith('med') || normalized.startsWith('mod')) return 'medium';
-  if (normalized.startsWith('low')) return 'low';
+  if (normalized.startsWith('low') || normalized.startsWith('rec')) return 'low';
   return 'info';
 };
 

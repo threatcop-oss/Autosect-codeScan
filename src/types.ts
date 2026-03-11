@@ -81,12 +81,15 @@ export interface HorusecConfig extends ScannerConfigBase {
   disableDocker?: boolean;
 }
 
+export interface CodeqlConfig extends ScannerConfigBase {}
+
 export interface ScannerConfigs {
   gitleaks: GitleaksConfig;
   trivy: TrivyConfig;
   semgrep: SemgrepConfig;
   npmAudit: NpmAuditConfig;
   horusec: HorusecConfig;
+  codeql: CodeqlConfig;
 }
 
 export interface OutputConfig {

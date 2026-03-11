@@ -132,7 +132,8 @@ export const writeDefaultConfig = async (targetPath: string): Promise<void> => {
       trivy: { enabled: true, severity: 'CRITICAL,HIGH', vulnType: 'os,library' },
       semgrep: { enabled: true, config: 'auto', rules: ['p/security-audit', 'p/nodejs'] },
       'npm-audit': { enabled: true, auditLevel: 'moderate' },
-      horusec: { enabled: true, disableDocker: true }
+      horusec: { enabled: true, disableDocker: true },
+      codeql: { enabled: true }
     },
     output: {
       format: 'json',

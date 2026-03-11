@@ -189,7 +189,7 @@ async function runScr(baseUrl, apiKey, scanId, filePath) {
   console.log("[SCR] Resolving path:", filePath);
   const { scanPath, cleanupTempDir } = await resolveScanPath(filePath);
   console.log("[SCR] Scan path:", scanPath);
-  const report = await runCodeScannerWithJsonReport(["horusec"], scanPath, cleanupTempDir, apiKey);
+  const report = await runCodeScannerWithJsonReport(["horusec", "codeql"], scanPath, cleanupTempDir, apiKey);
   const count = report?.findings?.length ?? 0;
   console.log("[SCR] Horusec finished. Findings count:", count);
   await saveScrVulns(baseUrl, apiKey, scanId, report.findings ?? []);

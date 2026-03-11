@@ -6,7 +6,8 @@ export const defaultConfig: ScanConfig = {
     trivy: { enabled: true },
     semgrep: { enabled: true },
     npmAudit: { enabled: true },
-    horusec: { enabled: true }
+    horusec: { enabled: true },
+    codeql: { enabled: true }
   },
   output: {
     format: 'console',
@@ -74,6 +75,14 @@ export const configSchema = {
           properties: {
             enabled: { type: 'boolean' },
             disableDocker: { type: 'boolean' },
+            args: { type: 'array', items: { type: 'string' } }
+          },
+          additionalProperties: true
+        },
+        codeql: {
+          type: 'object',
+          properties: {
+            enabled: { type: 'boolean' },
             args: { type: 'array', items: { type: 'string' } }
           },
           additionalProperties: true
