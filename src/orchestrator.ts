@@ -6,6 +6,7 @@ import { trivyScanner } from './scanners/trivy.js';
 import { semgrepScanner } from './scanners/semgrep.js';
 import { npmAuditScanner } from './scanners/npmAudit.js';
 import { horusecScanner } from './scanners/horusec.js';
+import { codeqlScanner } from './scanners/codeql.js';
 import { resolveExcludedFiles, resolveScanTarget } from './utils/paths.js';
 import { createLogger, Logger } from './logger.js';
 import { dedupeFindings } from './utils/dedupe.js';
@@ -21,7 +22,8 @@ const scannerMap: Record<string, Scanner> = {
   trivy: trivyScanner,
   semgrep: semgrepScanner,
   'npm-audit': npmAuditScanner,
-  horusec: horusecScanner
+  horusec: horusecScanner,
+  codeql: codeqlScanner
 };
 
 const CACHE_VERSION = '2';

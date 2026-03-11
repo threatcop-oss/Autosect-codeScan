@@ -17,6 +17,7 @@ import { trivyScanner } from './scanners/trivy.js';
 import { semgrepScanner } from './scanners/semgrep.js';
 import { npmAuditScanner } from './scanners/npmAudit.js';
 import { horusecScanner } from './scanners/horusec.js';
+import { codeqlScanner } from './scanners/codeql.js';
 import { runCommand } from './scanners/runner.js';
 
 const program = new Command();
@@ -26,7 +27,8 @@ const TOOLS: { name: string; command: string; args: string[] }[] = [
   { name: 'trivy', command: 'trivy', args: ['--version'] },
   { name: 'semgrep', command: 'semgrep', args: ['--version'] },
   { name: 'npm', command: 'npm', args: ['--version'] },
-  { name: 'horusec', command: 'horusec', args: ['version'] }
+  { name: 'horusec', command: 'horusec', args: ['version'] },
+  { name: 'codeql', command: 'codeql', args: ['version'] }
 ];
 
 const handleVerify = async () => {
@@ -48,7 +50,7 @@ const handleVerify = async () => {
   }
   console.log('');
   if (allOk) {
-    console.log(chalk.green('All tools are available. Gitleaks/Trivy/Semgrep/Horusec may still report 0 findings on clean repos (no secrets, no rule matches, no vulns).'));
+    console.log(chalk.green('All tools are available. Gitleaks/Trivy/Semgrep/Horusec/CodeQL may still report 0 findings on clean repos (no secrets, no rule matches, no vulns).'));
   } else {
     console.log(chalk.yellow('Install missing tools and ensure they are in your PATH.'));
     process.exitCode = 1;
@@ -163,7 +165,7 @@ const handleUpdate = async (opts: any) => {
   const config = applyCliOptions(baseConfig, options);
   const logger = createLogger({ verbose: options.verbose, quiet: options.quiet });
 
-  const scanners = [gitleaksScanner, trivyScanner, semgrepScanner, npmAuditScanner, horusecScanner];
+  const scanners = [gitleaksScanner, trivyScanner, semgrepScanner, npmAuditScanner, horusecScanner, codeqlScanner];
   for (const scanner of scanners) {
     if (!scanner.update) continue;
     const configKey = scanner.name === 'npm-audit' ? 'npmAudit' : scanner.name;
@@ -269,7 +271,7 @@ program
 
 program
   .command('verify')
-  .description('Verify that gitleaks, trivy, semgrep, and npm are installed and runnable')
+  .description('Verify that gitleaks, trivy, semgrep, npm, horusec, and codeql are installed and runnable')
   .action(handleVerify);
 
 program

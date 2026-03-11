@@ -24,6 +24,8 @@ const normalizeConfig = (config: Record<string, unknown>): ScanConfig => {
     string,
     unknown
   >;
+  const codeqlConfig = (scanners.codeql ?? {}) as Record<string, unknown>;
+  const defaultCodeql = defaultConfig.scanners.codeql;
 
   return {
     ...defaultConfig,
@@ -34,6 +36,18 @@ const normalizeConfig = (config: Record<string, unknown>): ScanConfig => {
       npmAudit: {
         ...defaultConfig.scanners.npmAudit,
         ...npmAuditConfig
+      },
+      codeql: {
+        ...defaultCodeql,
+        ...codeqlConfig,
+        queryPacks: {
+          ...(defaultCodeql.queryPacks ?? {}),
+          ...((codeqlConfig.queryPacks as Record<string, string> | undefined) ?? {})
+        },
+        buildCommands: {
+          ...(defaultCodeql.buildCommands ?? {}),
+          ...((codeqlConfig.buildCommands as Record<string, string> | undefined) ?? {})
+        }
       }
     }
   } as ScanConfig;
@@ -132,7 +146,12 @@ export const writeDefaultConfig = async (targetPath: string): Promise<void> => {
       trivy: { enabled: true, severity: 'CRITICAL,HIGH', vulnType: 'os,library' },
       semgrep: { enabled: true, config: 'auto', rules: ['p/security-audit', 'p/nodejs'] },
       'npm-audit': { enabled: true, auditLevel: 'moderate' },
-      horusec: { enabled: true, disableDocker: true }
+      horusec: { enabled: true, disableDocker: true },
+      codeql: {
+        enabled: true,
+        queryPacks: {},
+        buildCommands: {}
+      }
     },
     output: {
       format: 'json',

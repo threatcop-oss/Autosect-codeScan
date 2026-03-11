@@ -10,6 +10,8 @@ OS="$(uname -s)"
 ARCH="$(uname -m)"
 BIN_DIR="${BIN_DIR:-/usr/local/bin}"
 SUDO="${SUDO:-sudo}"
+CODEQL_INSTALL_DIR="${CODEQL_INSTALL_DIR:-/usr/local/codeql}"
+CODEQL_BIN_LINK="${CODEQL_BIN_LINK:-$BIN_DIR/codeql}"
 
 echo "=== Install scanner tools (OS: $OS, ARCH: $ARCH) ==="
 
@@ -126,16 +128,90 @@ install_horusec() {
   horusec version
 }
 
+# ----- CodeQL -----
+install_codeql() {
+  if command -v codeql >/dev/null 2>&1; then
+    echo "[ok] CodeQL already installed: $(codeql version 2>/dev/null | head -1 || true)"
+    return 0
+  fi
+
+  if ! command -v unzip >/dev/null 2>&1; then
+    echo "unzip is required to install CodeQL."
+    return 1
+  fi
+
+  echo "Installing CodeQL..."
+  CODEQL_RELEASE_JSON=$(curl -fsSL "https://api.github.com/repos/github/codeql-cli-binaries/releases/latest") || {
+    echo "Could not fetch latest CodeQL release metadata"
+    return 1
+  }
+
+  CODEQL_ASSET_NAME=""
+  if [ "$OS" = "Darwin" ]; then
+    # GitHub publishes the macOS bundle as osx64; on Apple Silicon this may run via Rosetta.
+    CODEQL_ASSET_NAME="codeql-osx64.zip"
+  elif [ "$OS" = "Linux" ]; then
+    if [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "amd64" ]; then
+      CODEQL_ASSET_NAME="codeql-linux64.zip"
+    else
+      echo "Unsupported arch for CodeQL on Linux: $ARCH"
+      return 1
+    fi
+  else
+    echo "Unsupported OS for CodeQL: $OS"
+    return 1
+  fi
+
+  CODEQL_URL=$(printf '%s\n' "$CODEQL_RELEASE_JSON" | sed -n "s/.*\"browser_download_url\": \"\\([^\"]*${CODEQL_ASSET_NAME}[^\"]*\\)\".*/\\1/p" | head -1)
+  if [ -z "$CODEQL_URL" ]; then
+    echo "Could not find CodeQL download URL for asset: $CODEQL_ASSET_NAME"
+    return 1
+  fi
+
+  CODEQL_ZIP="/tmp/${CODEQL_ASSET_NAME}"
+  rm -f "$CODEQL_ZIP"
+  curl -fL --retry 5 --retry-delay 2 --retry-all-errors -o "$CODEQL_ZIP" "$CODEQL_URL" || {
+    echo "Failed to download CodeQL from: $CODEQL_URL"
+    return 1
+  }
+
+  TMP_CODEQL_DIR="/tmp/codeql-install-$$"
+  rm -rf "$TMP_CODEQL_DIR"
+  mkdir -p "$TMP_CODEQL_DIR"
+  unzip -q "$CODEQL_ZIP" -d "$TMP_CODEQL_DIR" || {
+    rm -rf "$TMP_CODEQL_DIR"
+    echo "Failed to extract CodeQL archive"
+    return 1
+  }
+
+  if [ ! -x "$TMP_CODEQL_DIR/codeql/codeql" ]; then
+    rm -rf "$TMP_CODEQL_DIR"
+    echo "Extracted CodeQL archive did not contain expected binary"
+    return 1
+  fi
+
+  $SUDO rm -rf "$CODEQL_INSTALL_DIR"
+  $SUDO mkdir -p "$(dirname "$CODEQL_INSTALL_DIR")"
+  $SUDO mv "$TMP_CODEQL_DIR/codeql" "$CODEQL_INSTALL_DIR"
+  $SUDO ln -sf "$CODEQL_INSTALL_DIR/codeql" "$CODEQL_BIN_LINK"
+
+  rm -f "$CODEQL_ZIP"
+  rm -rf "$TMP_CODEQL_DIR"
+
+  codeql version
+}
+
 # ----- Main -----
 install_node    || true
 install_gitleaks || true
 install_trivy   || true
 install_semgrep || true
 install_horusec || true
+install_codeql || true
 
 echo ""
 echo "=== Verify ==="
-for cmd in node npm gitleaks trivy semgrep horusec; do
+for cmd in node npm gitleaks trivy semgrep horusec codeql; do
   if command -v "$cmd" >/dev/null 2>&1; then
     v="$($cmd --version 2>&1)" || v="$($cmd version 2>&1)" || v="ok"
     echo "  $cmd: $(echo "$v" | head -1)"
