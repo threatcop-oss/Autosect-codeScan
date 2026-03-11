@@ -102,9 +102,17 @@ function runCodeScannerWithJsonReport(tools, scanPath, cleanupTempDir, options =
       stdio: ["inherit", "pipe", "pipe"],
       shell: false,
     });
-    proc.stdout?.on("data", () => {});
-    proc.stderr?.on("data", () => {});
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    proc.stdout?.on("data", (chunk) => stdoutChunks.push(chunk));
+    proc.stderr?.on("data", (chunk) => stderrChunks.push(chunk));
     proc.on("close", (code) => {
+      const combinedStderr = Buffer.concat(stderrChunks).toString("utf8").trim();
+      if (combinedStderr) {
+        for (const line of combinedStderr.split("\n")) {
+          if (line.trim()) console.error("  [scanner]", line);
+        }
+      }
       const cleanup = () => {
         if (cleanupTempDir) {
           try {
@@ -189,10 +197,25 @@ async function runScr(baseUrl, apiKey, scanId, filePath) {
   console.log("[SCR] Resolving path:", filePath);
   const { scanPath, cleanupTempDir } = await resolveScanPath(filePath);
   console.log("[SCR] Scan path:", scanPath);
-  const report = await runCodeScannerWithJsonReport(["horusec", "codeql"], scanPath, cleanupTempDir, apiKey);
-  const count = report?.findings?.length ?? 0;
-  console.log("[SCR] Horusec finished. Findings count:", count);
-  await saveScrVulns(baseUrl, apiKey, scanId, report.findings ?? []);
+  const report = await runCodeScannerWithJsonReport(["horusec", "codeql"], scanPath, cleanupTempDir, { quiet: true });
+  const findings = report?.findings ?? [];
+  const errors = report?.errors ?? [];
+  const byTool = {};
+  for (const f of findings) {
+    byTool[f.tool] = (byTool[f.tool] || 0) + 1;
+  }
+  console.log("[SCR] Scan finished. Total findings:", findings.length);
+  for (const [tool, count] of Object.entries(byTool)) {
+    console.log(`[SCR]   ${tool}: ${count} findings`);
+  }
+  if (errors.length) {
+    console.warn("[SCR] Scanner errors encountered:");
+    for (const err of errors) {
+      console.warn(`[SCR]   [${err.tool}] ${err.message}`);
+      if (err.details) console.warn(`[SCR]     ${err.details.slice(0, 500)}`);
+    }
+  }
+  await saveScrVulns(baseUrl, apiKey, scanId, findings);
   console.log("SCR scan completed. Findings saved to AutoSecT.");
 }
 
@@ -201,8 +224,16 @@ async function runSca(baseUrl, apiKey, scanId, filePath) {
   const { scanPath, cleanupTempDir } = await resolveScanPath(filePath);
   console.log("[SCA] Scan path:", scanPath);
   const report = await runCodeScannerWithJsonReport(null, scanPath, cleanupTempDir, { quiet: false });
-  const localFindingsCount = report?.findings?.length ?? 0;
-  console.log("[SCA] Local findings count:", localFindingsCount);
+  const findings = report?.findings ?? [];
+  const errors = report?.errors ?? [];
+  console.log("[SCA] Local findings count:", findings.length);
+  if (errors.length) {
+    console.warn("[SCA] Scanner errors encountered:");
+    for (const err of errors) {
+      console.warn(`[SCA]   [${err.tool}] ${err.message}`);
+      if (err.details) console.warn(`[SCA]     ${err.details.slice(0, 500)}`);
+    }
+  }
   const reportHtml = await reportToHtml(report);
   await saveReportToAutosect(baseUrl, apiKey, scanId, reportHtml);
   await ingestScaReport(baseUrl, apiKey, scanId, report);
