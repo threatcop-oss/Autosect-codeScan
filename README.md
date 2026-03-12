@@ -1,6 +1,6 @@
 # Code Scanner
 
-Unified CLI-based security scanning system for orchestrating Gitleaks, Trivy, Semgrep, npm audit, and (for SCR) Horusec. Integrates with **AutoSecT** for SCR/SCA asset creation, scan runs, and report ingestion.
+Unified CLI-based security scanning system for orchestrating Gitleaks, Trivy, Semgrep, npm audit, Horusec, and CodeQL. Integrates with **AutoSecT** for SCR/SCA asset creation, scan runs, and report ingestion.
 
 ## Features
 
@@ -17,13 +17,13 @@ npm run build
 Ensure these tools are installed and available in `PATH`:
 
 - **SCA:** `gitleaks`, `trivy`, `semgrep`, `npm`
-- **SCR:** `horusec`
+- **SCR:** `horusec`, `codeql`
 
 One-shot install (Ubuntu/macOS): `./scripts/install-scanner-tools.sh`
 
 ## Docker (run on any platform)
 
-The image builds once (base + dependencies + app), then runs `run-scan-with-credentials.js` with the arguments you pass. Works on **Windows, macOS, and Linux** (x86_64 and ARM64). No need to install gitleaks, trivy, semgrep, npm, or horusec locally.
+The image builds once (base + dependencies + app), then runs `run-scan-with-credentials.js` with the arguments you pass. It works on **Windows, macOS, and Linux** hosts, but the current CodeQL-enabled image is built as `linux/amd64` because GitHub publishes the Linux CodeQL bundle as `linux64`.
 
 ### Prerequisites
 
@@ -34,7 +34,7 @@ The image builds once (base + dependencies + app), then runs `run-scan-with-cred
 ```bash
 git clone <repo-url>
 cd Autosect-codeScan
-docker build -t code-scanner .
+docker build --platform linux/amd64 -t code-scanner .
 ```
 
 ### Run (AutoSecT)
@@ -58,7 +58,7 @@ Example:
 
 ```bash
 docker run --rm -it \
-  -v /Users/admin/Desktop/DVWA:/Users/admin/Desktop/DVWA \
+  -v /Users/admin/Desktop/dvja:/Users/admin/Desktop/dvja \
   --entrypoint bash \
   code-scanner
 ```
@@ -72,7 +72,7 @@ cd /app
 3. Paste and run the copied command:
 
 ```bash
-node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /Users/admin/Desktop/DVWA --base-url https://autosect.threatcop.com
+node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /Users/admin/Desktop/DVWA --base-url https://autosect.threatcop.com --verbose
 ```
 
 This works because the path in `--path` exists inside the container exactly as pasted.
@@ -99,7 +99,7 @@ cd /app
 3. Run the command with `/scan`:
 
 ```bash
-node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /scan --base-url https://autosect.threatcop.com
+node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /scan --base-url https://autosect.threatcop.com --verbose
 ```
 
 For SCA, replace `--scan-type scr` with `--scan-type sca`.
@@ -114,19 +114,19 @@ If DNS fails (e.g. on corporate network), add `--dns 8.8.8.8 --dns 8.8.4.4` afte
 2. **Create an asset** — Create an **SCR** or **SCA** asset.
 3. **Create a scan** — Create a scan for that asset and select the **Run locally**.
 4. **Copy the command** — In the scan list, use the **copy** button beside the scan name to copy the run command.
-5. **Run the scan** — Paste and run the copied command. **Without Docker:** use your real path for `--path`. **With Docker:** start the container with the same absolute path mounted, then run the copied `node scripts/run-scan-with-credentials.js ...` command inside the container with that same path in `--path`.
+5. **Run the scan** — Paste and run the copied command. **Without Docker:** use your real path for `--path`. **With Docker:** start the container with the same absolute path mounted, then run the copied `node scripts/run-scan-with-credentials.js ...` command inside the container with that same path in `--path`. The container already includes `codeql`, `gitleaks`, `trivy`, `semgrep`, and `horusec`.
 6. **View results** — After the scan completes, vulnerabilities and the report appear in the respective scan in AutoSecT.
 
 **Example (SCR):**
 
 ```bash
-node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /path/to/your/repo
+node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /path/to/your/repo --verbose
 ```
 
 **Example (SCA):**
 
 ```bash
-node scripts/run-scan-with-credentials.js --scan-type sca --scan-id "<scan-id>" --token "<your-jwt>" --path /path/to/your/package-lock.json
+node scripts/run-scan-with-credentials.js --scan-type sca --scan-id "<scan-id>" --token "<your-jwt>" --path /path/to/your/package-lock.json --verbose
 ```
 
 Use the exact command from the copy button; only change `--path` to your target path.

@@ -19,6 +19,19 @@ scanners:
     enabled: true
     auditLevel: moderate
 
+  codeql:
+    enabled: true
+    languages:
+      - javascript
+      - python
+      - java
+    queryPacks:
+      javascript: codeql/javascript-queries
+      python: codeql/python-queries
+      java: codeql/java-queries
+    buildCommands:
+      java: mvn -q -DskipTests compile
+
 output:
   format: json
   file: security-report.json
