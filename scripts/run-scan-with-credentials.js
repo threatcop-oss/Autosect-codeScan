@@ -48,7 +48,7 @@ function parseArgs() {
   return out;
 }
 
-const baseUrlFromEnv = (process.env.AUTOSECT_BASE_URL || process.env.BASE_URL || "http://localhost:8080").replace(/\/$/, "");
+const baseUrlFromEnv = (process.env.AUTOSECT_BASE_URL || process.env.BASE_URL || "https://autosect.threatcop.com").replace(/\/$/, "");
 
 /** Send JWT token (or API key) as Bearer + x-api-key (matches getApiKeyFromRequest on backend). */
 function authHeaders(token) {
