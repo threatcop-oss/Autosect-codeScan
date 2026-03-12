@@ -189,9 +189,9 @@ async function runScr(baseUrl, apiKey, scanId, filePath) {
   console.log("[SCR] Resolving path:", filePath);
   const { scanPath, cleanupTempDir } = await resolveScanPath(filePath);
   console.log("[SCR] Scan path:", scanPath);
-  const report = await runCodeScannerWithJsonReport(["codeql"], scanPath, cleanupTempDir, { quiet: false });
+  const report = await runCodeScannerWithJsonReport(["codeql","horusec"], scanPath, cleanupTempDir, { quiet: false });
   const count = report?.findings?.length ?? 0;
-  console.log("[SCR] CodeQL finished. Findings count:", count);
+  console.log("[SCR] CodeQL and Horusec finished. Findings count:", count);
   await saveScrVulns(baseUrl, apiKey, scanId, report.findings ?? []);
   console.log("SCR scan completed. Findings saved to AutoSecT.");
 }
