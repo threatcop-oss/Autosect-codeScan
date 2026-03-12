@@ -23,7 +23,7 @@ One-shot install (Ubuntu/macOS): `./scripts/install-scanner-tools.sh`
 
 ## Docker (run on any platform)
 
-The image builds once (base + dependencies + app), then runs `run-scan-with-credentials.js` with the arguments you pass. Works on **Windows, macOS, and Linux** hosts. The image now installs CodeQL from the official bundle during `docker build`, so you do not need a local CodeQL install on the host.
+The image builds once (base + dependencies + app), then runs `run-scan-with-credentials.js` with the arguments you pass. It works on **Windows, macOS, and Linux** hosts, but the current CodeQL-enabled image is built as `linux/amd64` because GitHub publishes the Linux CodeQL bundle as `linux64`.
 
 ### Prerequisites
 
@@ -34,16 +34,8 @@ The image builds once (base + dependencies + app), then runs `run-scan-with-cred
 ```bash
 git clone <repo-url>
 cd Autosect-codeScan
-docker build -t code-scanner .
+docker build --platform linux/amd64 -t code-scanner .
 ```
-
-If you want to produce a multi-platform image for both common Linux container targets, use Buildx:
-
-```bash
-docker buildx build --platform linux/amd64,linux/arm64 -t code-scanner --load .
-```
-
-Inside the image, scanner tools are installed by `scripts/install-scanner-tools.sh`, including the bundled CodeQL CLI and query packs.
 
 ### Run (AutoSecT)
 
@@ -66,7 +58,7 @@ Example:
 
 ```bash
 docker run --rm -it \
-  -v /Users/admin/Desktop/DVWA:/Users/admin/Desktop/DVWA \
+  -v /Users/admin/Desktop/dvja:/Users/admin/Desktop/dvja \
   --entrypoint bash \
   code-scanner
 ```
@@ -80,7 +72,7 @@ cd /app
 3. Paste and run the copied command:
 
 ```bash
-node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /Users/admin/Desktop/DVWA --base-url https://autosect.threatcop.com
+node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /Users/admin/Desktop/DVWA --base-url https://autosect.threatcop.com --verbose
 ```
 
 This works because the path in `--path` exists inside the container exactly as pasted.
@@ -107,7 +99,7 @@ cd /app
 3. Run the command with `/scan`:
 
 ```bash
-node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /scan --base-url https://autosect.threatcop.com
+node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /scan --base-url https://autosect.threatcop.com --verbose
 ```
 
 For SCA, replace `--scan-type scr` with `--scan-type sca`.
@@ -128,13 +120,13 @@ If DNS fails (e.g. on corporate network), add `--dns 8.8.8.8 --dns 8.8.4.4` afte
 **Example (SCR):**
 
 ```bash
-node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /path/to/your/repo
+node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /path/to/your/repo --verbose
 ```
 
 **Example (SCA):**
 
 ```bash
-node scripts/run-scan-with-credentials.js --scan-type sca --scan-id "<scan-id>" --token "<your-jwt>" --path /path/to/your/package-lock.json
+node scripts/run-scan-with-credentials.js --scan-type sca --scan-id "<scan-id>" --token "<your-jwt>" --path /path/to/your/package-lock.json --verbose
 ```
 
 Use the exact command from the copy button; only change `--path` to your target path.
