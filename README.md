@@ -72,7 +72,7 @@ cd /app
 3. Paste and run the copied command:
 
 ```bash
-node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /Users/admin/Desktop/DVWA --base-url https://autosect.threatcop.com --verbose
+node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path <path of file or folder to scan>
 ```
 
 This works because the path in `--path` exists inside the container exactly as pasted.
@@ -99,7 +99,7 @@ cd /app
 3. Run the command with `/scan`:
 
 ```bash
-node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /scan --base-url https://autosect.threatcop.com --verbose
+node scripts/run-scan-with-credentials.js --scan-type scr --scan-id "<scan-id>" --token "<your-jwt>" --path /scan
 ```
 
 For SCA, replace `--scan-type scr` with `--scan-type sca`.
@@ -107,6 +107,16 @@ For SCA, replace `--scan-type scr` with `--scan-type sca`.
 If DNS fails (e.g. on corporate network), add `--dns 8.8.8.8 --dns 8.8.4.4` after `docker run --rm -it`.
 
 ## AutoSecT flow (SCR & SCA)
+
+### Create an AutoSecT account
+
+1. **Register on the platform** — Open `https://autosect.threatcop.com/register` and complete the signup form.
+2. **Verify your email** — Check your inbox for the verification link and click it to activate your account.
+3. **Log in** — Go to the AutoSecT login page, enter your registered email and password, and click **Login**.
+4. **(Optional) Add Claude API key for AI features**:
+   - Go to **Settings** (top-right button in the AutoSecT dashboard).
+   - Open the last tab labeled **Claude Key**.
+   - Paste your Claude API key and **Save** to enable AI-powered features (SCA/SCR analysis help, POC suggestions, etc.).
 
 ### Run scan from AutoSecT UI
 

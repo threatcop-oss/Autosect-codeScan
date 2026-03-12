@@ -137,7 +137,7 @@ function runCodeScannerWithJsonReport(tools, scanPath, cleanupTempDir, options =
 async function saveScrVulns(baseUrl, apiKey, scanId, findings) {
   const url = `${baseUrl}/api/scrasset/save-vul-scr`;
   const vulnerabilities = Array.isArray(findings) ? findings : [];
-  console.log("[SCR] Saving to API:", url, "scanId:", scanId, "vulnerabilities:", vulnerabilities.length);
+  console.log("[SCR] Saving to API:", "scanId:", scanId, "vulnerabilities:", vulnerabilities.length);
   const res = await fetch(url, {
     method: "POST",
     headers: { ...authHeaders(apiKey), "Content-Type": "application/json" },
