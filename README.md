@@ -1,6 +1,6 @@
 # Code Scanner
 
-Unified CLI-based security scanning system for orchestrating Gitleaks, Trivy, Semgrep, npm audit, and (for SCR) Horusec. Integrates with **AutoSecT** for SCR/SCA asset creation, scan runs, and report ingestion.
+Unified CLI-based security scanning system for orchestrating Gitleaks, Trivy, Semgrep, npm audit, Horusec, and CodeQL. Integrates with **AutoSecT** for SCR/SCA asset creation, scan runs, and report ingestion.
 
 ## Features
 
@@ -17,13 +17,13 @@ npm run build
 Ensure these tools are installed and available in `PATH`:
 
 - **SCA:** `gitleaks`, `trivy`, `semgrep`, `npm`
-- **SCR:** `horusec`
+- **SCR:** `horusec`, `codeql`
 
 One-shot install (Ubuntu/macOS): `./scripts/install-scanner-tools.sh`
 
 ## Docker (run on any platform)
 
-The image builds once (base + dependencies + app), then runs `run-scan-with-credentials.js` with the arguments you pass. Works on **Windows, macOS, and Linux** (x86_64 and ARM64). No need to install gitleaks, trivy, semgrep, npm, or horusec locally.
+The image builds once (base + dependencies + app), then runs `run-scan-with-credentials.js` with the arguments you pass. Works on **Windows, macOS, and Linux** hosts. The image now installs CodeQL from the official bundle during `docker build`, so you do not need a local CodeQL install on the host.
 
 ### Prerequisites
 
@@ -36,6 +36,14 @@ git clone <repo-url>
 cd Autosect-codeScan
 docker build -t code-scanner .
 ```
+
+If you want to produce a multi-platform image for both common Linux container targets, use Buildx:
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t code-scanner --load .
+```
+
+Inside the image, scanner tools are installed by `scripts/install-scanner-tools.sh`, including the bundled CodeQL CLI and query packs.
 
 ### Run (AutoSecT)
 
@@ -114,7 +122,7 @@ If DNS fails (e.g. on corporate network), add `--dns 8.8.8.8 --dns 8.8.4.4` afte
 2. **Create an asset** — Create an **SCR** or **SCA** asset.
 3. **Create a scan** — Create a scan for that asset and select the **Run locally**.
 4. **Copy the command** — In the scan list, use the **copy** button beside the scan name to copy the run command.
-5. **Run the scan** — Paste and run the copied command. **Without Docker:** use your real path for `--path`. **With Docker:** start the container with the same absolute path mounted, then run the copied `node scripts/run-scan-with-credentials.js ...` command inside the container with that same path in `--path`.
+5. **Run the scan** — Paste and run the copied command. **Without Docker:** use your real path for `--path`. **With Docker:** start the container with the same absolute path mounted, then run the copied `node scripts/run-scan-with-credentials.js ...` command inside the container with that same path in `--path`. The container already includes `codeql`, `gitleaks`, `trivy`, `semgrep`, and `horusec`.
 6. **View results** — After the scan completes, vulnerabilities and the report appear in the respective scan in AutoSecT.
 
 **Example (SCR):**

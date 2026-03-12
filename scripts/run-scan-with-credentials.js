@@ -15,7 +15,7 @@
  *   --path        Path to scan: directory, .zip, or file (required)
  *   --base-url    API base URL (optional; else AUTOSECT_BASE_URL or BASE_URL or default)
  *
- * SCR: runs Horusec, then POSTs findings to /api/scrasset/save-vul-scr.
+ * SCR: runs CodeQL, then POSTs findings to /api/scrasset/save-vul-scr.
  * SCA: runs gitleaks, trivy, semgrep, npm-audit; uploads HTML report and ingests to AutoSecT.
  */
 
@@ -48,7 +48,7 @@ function parseArgs() {
   return out;
 }
 
-const baseUrlFromEnv = (process.env.AUTOSECT_BASE_URL || process.env.BASE_URL || "https://autosect.threatcop.com").replace(/\/$/, "");
+const baseUrlFromEnv = (process.env.AUTOSECT_BASE_URL || process.env.BASE_URL || "http://localhost:8080").replace(/\/$/, "");
 
 /** Send JWT token (or API key) as Bearer + x-api-key (matches getApiKeyFromRequest on backend). */
 function authHeaders(token) {
@@ -189,9 +189,9 @@ async function runScr(baseUrl, apiKey, scanId, filePath) {
   console.log("[SCR] Resolving path:", filePath);
   const { scanPath, cleanupTempDir } = await resolveScanPath(filePath);
   console.log("[SCR] Scan path:", scanPath);
-  const report = await runCodeScannerWithJsonReport(["horusec"], scanPath, cleanupTempDir, apiKey);
+  const report = await runCodeScannerWithJsonReport(["codeql"], scanPath, cleanupTempDir, { quiet: false });
   const count = report?.findings?.length ?? 0;
-  console.log("[SCR] Horusec finished. Findings count:", count);
+  console.log("[SCR] CodeQL finished. Findings count:", count);
   await saveScrVulns(baseUrl, apiKey, scanId, report.findings ?? []);
   console.log("SCR scan completed. Findings saved to AutoSecT.");
 }

@@ -1,13 +1,15 @@
 # Code Scanner - runs run-scan-with-credentials.js (SCR/SCA → AutoSecT)
-# Flow: (1) Initialize base image (2) Install all dependencies (3) Copy app & build (4) Run script with your args
+# Flow: (1) Initialize base image (2) Install all dependencies and scanners including CodeQL
+#       (3) Copy app & build (4) Run script with your args
 
 # --- 1. Initialize ---
-FROM ubuntu:22.04
+# CodeQL's published Linux bundle is linux64, so build the container as amd64.
+FROM --platform=linux/amd64 ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 # --- 2. Install all dependencies ---
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl wget gnupg python3 python3-pip git jq sudo \
+    ca-certificates curl wget gnupg python3 python3-pip git jq sudo tar gzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Node.js 20 LTS
@@ -15,9 +17,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Scanner tools (Gitleaks, Trivy, Semgrep, Horusec)
+# Scanner tools (Gitleaks, Trivy, Semgrep, Horusec, CodeQL)
 ARG GITLEAKS_VERSION=8.30.0
 ARG TRIVY_VERSION=0.69.3
+ARG CODEQL_BUNDLE_VERSION=v2.24.3
 RUN ARCH=$(dpkg --print-architecture) \
     && GITLEAKS_ARCH=$([ "$ARCH" = "amd64" ] && echo "linux_x64" || echo "linux_arm64") \
     && wget -qO /tmp/gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_${GITLEAKS_ARCH}.tar.gz" \
@@ -31,6 +34,15 @@ RUN ARCH=$(dpkg --print-architecture) \
     && chmod +x /usr/local/bin/trivy
 RUN pip3 install --no-cache-dir semgrep
 RUN curl -fsSL https://raw.githubusercontent.com/ZupIT/horusec/main/deployments/scripts/install.sh | bash -s latest
+RUN curl -fL --retry 5 --retry-delay 2 --retry-all-errors -o /tmp/codeql-bundle.tar.gz \
+        "https://github.com/github/codeql-action/releases/download/codeql-bundle-${CODEQL_BUNDLE_VERSION}/codeql-bundle-linux64.tar.gz" \
+    && rm -rf /opt/codeql \
+    && mkdir -p /opt/codeql \
+    && tar -xzf /tmp/codeql-bundle.tar.gz -C /opt \
+    && ln -sf /opt/codeql/codeql /usr/local/bin/codeql \
+    && rm -f /tmp/codeql-bundle.tar.gz \
+    && codeql version \
+    && codeql resolve packs >/dev/null
 
 # --- 3. App: copy, install, build ---
 WORKDIR /app
