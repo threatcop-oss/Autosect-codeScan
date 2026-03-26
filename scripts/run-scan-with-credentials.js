@@ -105,8 +105,9 @@ function runCodeScannerWithJsonReport(tools, scanPath, cleanupTempDir, options =
       stdio: ["inherit", "pipe", "pipe"],
       shell: false,
     });
+    const stderrChunks = [];
     proc.stdout?.on("data", () => {});
-    proc.stderr?.on("data", () => {});
+    proc.stderr?.on("data", (chunk) => { stderrChunks.push(chunk); });
     proc.on("close", (code) => {
       const cleanup = () => {
         if (cleanupTempDir) {
@@ -120,7 +121,8 @@ function runCodeScannerWithJsonReport(tools, scanPath, cleanupTempDir, options =
       };
       if (code !== 0) {
         cleanup();
-        reject(new Error(`Scan exited with code ${code}`));
+        const stderrText = Buffer.concat(stderrChunks).toString().trim();
+        reject(new Error(stderrText || `Scan exited with code ${code}`));
         return;
       }
       try {

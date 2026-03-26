@@ -51,7 +51,13 @@ const buildContext = async (
     return { excludeSet, incrementalFiles };
   }
   if (options.diffCommit) {
-    const allChanged = await getChangedFilesSinceCommit(options.targetPath, options.diffCommit);
+    let allChanged: string[];
+    try {
+      allChanged = await getChangedFilesSinceCommit(options.targetPath, options.diffCommit);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Invalid commit reference '${options.diffCommit}': ${msg}`);
+    }
     const resolved = path.resolve(options.targetPath);
     const incrementalFiles = allChanged.filter((f) => f.startsWith(resolved));
     return { excludeSet, incrementalFiles };
