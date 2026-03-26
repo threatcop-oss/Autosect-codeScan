@@ -79,6 +79,7 @@ const buildScanOptions = (pathArg: string | undefined, opts: any): ScanOptions =
     exclude: parseList(opts.exclude),
     parallel: opts.parallel,
     incremental: opts.incremental,
+    diffCommit: opts.commit,
     baselinePath: opts.baseline,
     verbose: opts.verbose,
     quiet: opts.quiet,
@@ -99,6 +100,10 @@ const ensurePathExists = async (options: ScanOptions) => {
 
 const handleScan = async (pathArg: string | undefined, opts: any) => {
   const options = buildScanOptions(pathArg, opts);
+  if (options.incremental && options.diffCommit) {
+    console.error(chalk.red('Cannot use --incremental and --commit together.'));
+    process.exit(1);
+  }
   await ensurePathExists(options);
   const baseConfig = await loadConfig(options.configPath, options.targetPath);
   const config = applyCliOptions(baseConfig, options);
@@ -261,6 +266,7 @@ program
   .option('--exclude <patterns>', 'Paths to exclude (comma-separated globs)')
   .option('--parallel', 'Run scanners in parallel', true)
   .option('--incremental', 'Only scan changed files', false)
+  .option('--commit <hash>', 'Scan only files changed since the given commit hash')
   .option('--baseline <path>', 'Path to baseline file for comparison')
   .option('--verbose', 'Detailed logging')
   .option('--quiet', 'Minimal output')

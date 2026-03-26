@@ -22,6 +22,24 @@ export const getRepositoryInfo = async (repoPath: string): Promise<{
   }
 };
 
+export const getChangedFilesSinceCommit = async (
+  repoPath: string,
+  commitHash: string
+): Promise<string[]> => {
+  try {
+    const git = getGitClient(repoPath);
+    const diff = await git.diff(['--name-only', `${commitHash}..HEAD`]);
+    const files = diff
+      .split('\n')
+      .map((file) => file.trim())
+      .filter(Boolean)
+      .map((file) => path.resolve(repoPath, file));
+    return Array.from(new Set(files));
+  } catch {
+    return [];
+  }
+};
+
 export const getChangedFiles = async (repoPath: string): Promise<string[]> => {
   try {
     const git = getGitClient(repoPath);

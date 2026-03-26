@@ -63,7 +63,7 @@ export const semgrepScanner: Scanner = {
       args.push(...context.config.scanners.semgrep.args);
     }
 
-    const scanTargets = context.options.incremental && context.incrementalFiles?.length
+    const scanTargets = context.incrementalFiles?.length
       ? context.incrementalFiles
       : [context.targetPath];
     args.push(...scanTargets);
