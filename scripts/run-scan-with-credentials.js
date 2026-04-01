@@ -31,7 +31,7 @@ const cliPath = path.join(projectRoot, "dist", "cli.js");
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const out = { scanType: null, scanId: null, apiKey: null, path: null, baseUrl: null };
+  const out = { scanType: null, scanId: null, apiKey: null, path: null, baseUrl: null, commit: null };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--scan-type" && args[i + 1]) {
       out.scanType = args[++i].toLowerCase();
@@ -41,6 +41,8 @@ function parseArgs() {
       out.apiKey = args[++i];
     } else if ((args[i] === "--path" || args[i] === "--file-path") && args[i + 1]) {
       out.path = args[++i].trim();
+    } else if (args[i] === "--commit" && args[i + 1]) {
+      out.commit = args[++i];
     } else if (args[i] === "--base-url" && args[i + 1]) {
       out.baseUrl = args[++i].replace(/\/$/, "");
     }
@@ -95,6 +97,7 @@ function runCodeScannerWithJsonReport(tools, scanPath, cleanupTempDir, options =
     const args = ["scan", scanPath, "--format", "json", "--output", outFile];
     const toolsArg = Array.isArray(tools) ? tools.join(",") : tools;
     if (toolsArg) args.push("--tools", toolsArg);
+    if (options.commit) args.push("--commit", options.commit);
     if (quiet) args.push("--quiet");
     console.log("Scan in progress...");
     const proc = spawn("node", [cliPath, ...args], {
@@ -102,8 +105,9 @@ function runCodeScannerWithJsonReport(tools, scanPath, cleanupTempDir, options =
       stdio: ["inherit", "pipe", "pipe"],
       shell: false,
     });
+    const stderrChunks = [];
     proc.stdout?.on("data", () => {});
-    proc.stderr?.on("data", () => {});
+    proc.stderr?.on("data", (chunk) => { stderrChunks.push(chunk); });
     proc.on("close", (code) => {
       const cleanup = () => {
         if (cleanupTempDir) {
@@ -117,7 +121,8 @@ function runCodeScannerWithJsonReport(tools, scanPath, cleanupTempDir, options =
       };
       if (code !== 0) {
         cleanup();
-        reject(new Error(`Scan exited with code ${code}`));
+        const stderrText = Buffer.concat(stderrChunks).toString().trim();
+        reject(new Error(stderrText || `Scan exited with code ${code}`));
         return;
       }
       try {
@@ -185,22 +190,22 @@ async function ingestScaReport(baseUrl, apiKey, scanId, report) {
   return data;
 }
 
-async function runScr(baseUrl, apiKey, scanId, filePath) {
+async function runScr(baseUrl, apiKey, scanId, filePath, commit) {
   console.log("[SCR] Resolving path:", filePath);
   const { scanPath, cleanupTempDir } = await resolveScanPath(filePath);
   console.log("[SCR] Scan path:", scanPath);
-  const report = await runCodeScannerWithJsonReport(["codeql","horusec"], scanPath, cleanupTempDir, { quiet: false });
+  const report = await runCodeScannerWithJsonReport(["codeql","horusec"], scanPath, cleanupTempDir, { quiet: false, commit });
   const count = report?.findings?.length ?? 0;
   console.log("[SCR] CodeQL and Horusec finished. Findings count:", count);
   await saveScrVulns(baseUrl, apiKey, scanId, report.findings ?? []);
   console.log("SCR scan completed. Findings saved to AutoSecT.");
 }
 
-async function runSca(baseUrl, apiKey, scanId, filePath) {
+async function runSca(baseUrl, apiKey, scanId, filePath, commit) {
   console.log("[SCA] Resolving path:", filePath);
   const { scanPath, cleanupTempDir } = await resolveScanPath(filePath);
   console.log("[SCA] Scan path:", scanPath);
-  const report = await runCodeScannerWithJsonReport(null, scanPath, cleanupTempDir, { quiet: false });
+  const report = await runCodeScannerWithJsonReport(null, scanPath, cleanupTempDir, { quiet: false, commit });
   const localFindingsCount = report?.findings?.length ?? 0;
   console.log("[SCA] Local findings count:", localFindingsCount);
   const reportHtml = await reportToHtml(report);
@@ -210,7 +215,7 @@ async function runSca(baseUrl, apiKey, scanId, filePath) {
 }
 
 async function main() {
-  const { scanType, scanId, apiKey, path: filePath, baseUrl } = parseArgs();
+  const { scanType, scanId, apiKey, path: filePath, baseUrl, commit } = parseArgs();
   const base = baseUrl || baseUrlFromEnv;
 
   const missing = [];
@@ -243,13 +248,14 @@ async function main() {
   console.log("  scan-id:", scanId);
   console.log("  path:", filePath);
   console.log("  base-url:", base);
+  if (commit) console.log("  commit:", commit);
   console.log("");
 
   try {
     if (scanType === "scr") {
-      await runScr(base, apiKey, scanId, filePath);
+      await runScr(base, apiKey, scanId, filePath, commit);
     } else {
-      await runSca(base, apiKey, scanId, filePath);
+      await runSca(base, apiKey, scanId, filePath, commit);
     }
   } catch (err) {
     console.error(err.message || err);

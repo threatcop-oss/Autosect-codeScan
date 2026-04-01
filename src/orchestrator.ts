@@ -1,3 +1,4 @@
+import path from 'path';
 import ora from 'ora';
 import { ScanConfig, ScanOptions, ScanReport, ScanError, Finding } from './types.js';
 import { Scanner } from './scanners/types.js';
@@ -11,7 +12,7 @@ import { resolveExcludedFiles, resolveScanTarget } from './utils/paths.js';
 import { createLogger, Logger } from './logger.js';
 import { dedupeFindings } from './utils/dedupe.js';
 import { isSeverityAtLeast } from './utils/severity.js';
-import { getChangedFiles, getRepositoryInfo } from './utils/git.js';
+import { getChangedFiles, getChangedFilesSinceCommit, getRepositoryInfo } from './utils/git.js';
 import { CacheStore } from './cache.js';
 import { startTimer } from './utils/timers.js';
 import { buildSummary } from './utils/summary.js';
@@ -45,12 +46,23 @@ const buildContext = async (
   incrementalFiles?: string[];
 }> => {
   const excludeSet = await resolveExcludedFiles(options.targetPath, config.exclude);
-  if (!options.incremental) {
-    return { excludeSet };
+  if (options.incremental) {
+    const incrementalFiles = await getChangedFiles(options.targetPath);
+    return { excludeSet, incrementalFiles };
   }
-
-  const incrementalFiles = await getChangedFiles(options.targetPath);
-  return { excludeSet, incrementalFiles };
+  if (options.diffCommit) {
+    let allChanged: string[];
+    try {
+      allChanged = await getChangedFilesSinceCommit(options.targetPath, options.diffCommit);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Invalid commit reference '${options.diffCommit}': ${msg}`);
+    }
+    const resolved = path.resolve(options.targetPath);
+    const incrementalFiles = allChanged.filter((f) => f.startsWith(resolved));
+    return { excludeSet, incrementalFiles };
+  }
+  return { excludeSet };
 };
 
 export const runScan = async (
@@ -103,7 +115,7 @@ export const runScan = async (
     }
   }
 
-  if (resolvedOptions.incremental && incrementalFiles && incrementalFiles.length === 0) {
+  if ((resolvedOptions.incremental || resolvedOptions.diffCommit) && incrementalFiles && incrementalFiles.length === 0) {
     const repoInfo = await getRepositoryInfo(resolvedOptions.targetPath);
     return {
       timestamp: new Date().toISOString(),
@@ -114,8 +126,10 @@ export const runScan = async (
       findings: [],
       errors: [
         {
-          tool: 'incremental',
-          message: 'No changed files detected for incremental scan.'
+          tool: resolvedOptions.diffCommit ? 'commit-diff' : 'incremental',
+          message: resolvedOptions.diffCommit
+            ? `No changed files detected between commit ${resolvedOptions.diffCommit} and HEAD within the target path.`
+            : 'No changed files detected for incremental scan.'
         }
       ]
     };

@@ -142,6 +142,7 @@ export interface ScanOptions {
   exclude?: string[];
   parallel?: boolean;
   incremental?: boolean;
+  diffCommit?: string;
   baselinePath?: string;
   verbose?: boolean;
   quiet?: boolean;
